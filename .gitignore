@@ -1,7 +1,8 @@
-# editor files:
+# editor/external files:
 
 *~
 .*.swp
+*.bat
 
 # Eclipse project files:
 
@@ -33,7 +34,6 @@ local.properties
 
 gradle/
 gradlew
-gradlew.bat
 
 .gradle/
 .idea/
@@ -79,6 +79,10 @@ libespeak-ng.a
 libespeak-ng.la
 libespeak-ng.so*
 
+libespeak-ng-test.a
+libespeak-ng-test.la
+libespeak-ng-test.so*
+
 # build output
 
 *.html
@@ -91,6 +95,7 @@ src/espeakedit
 src/speak-ng
 
 tests/*.test
+!tests/languages.test
 
 espeak-ng.pc
 
@@ -178,4 +183,3 @@ espeak-ng-data/phondata
 espeak-ng-data/phondata-manifest
 espeak-ng-data/phonindex
 espeak-ng-data/phontab
-espeak-ng-data/lang/roa/compile_lang.bat

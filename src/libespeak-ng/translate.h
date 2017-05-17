@@ -570,17 +570,12 @@ typedef struct {
 	int testing;            // testing options: bit 1= specify stressed syllable in the form:  "outdoor/2"
 	int listx;    // compile *_listx after *list
 	const unsigned int *replace_chars;      // characters to be substitutes
-	char ascii_language[8];  // switch to this language for Latin characters
 	int our_alphabet;           // offset for main alphabet (if not set in letter_bits_offset)
 	int alt_alphabet;       // offset for another language to recognize
 	int alt_alphabet_lang;  // language for the alt_alphabet
 	int max_lengthmod;
 	int lengthen_tonic;   // lengthen the tonic syllable
 	int suffix_add_e;      // replace a suffix (which has the SUFX_E flag) with this character
-
-#define DICTDIALECT_EN_US  1  // bit number
-#define DICTDIALECT_ES_LA  2
-	int dict_dialect;         // bitmap, use a dialect for foreign words
 } LANGUAGE_OPTIONS;
 
 // a parameter of ChangePhonemes()
@@ -733,7 +728,6 @@ int towlower2(unsigned int c); // Supports Turkish I
 const char *GetTranslatedPhonemeString(int phoneme_mode);
 const char *WordToString2(unsigned int word);
 ALPHABET *AlphabetFromChar(int c);
-ALPHABET *AlphabetFromName(const char *name);
 
 Translator *SelectTranslator(const char *name);
 int SetTranslator2(const char *name);

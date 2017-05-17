@@ -29,8 +29,8 @@
 
 #include <espeak-ng/espeak_ng.h>
 #include <espeak-ng/speak_lib.h>
+#include <espeak-ng/encoding.h>
 
-#include "encoding.h"
 #include "speech.h"
 #include "phoneme.h"
 #include "synthesize.h"
@@ -2293,7 +2293,7 @@ int TranslateRules(Translator *tr, char *p_start, char *phonemes, int ph_size, c
 						if (tr->letter_bits_offset > 0) {
 							// not a Latin alphabet, switch to the default Latin alphabet language
 							if ((letter <= 0x241) && iswalpha(letter)) {
-								sprintf(phonemes, "%c%s", phonSWITCH, tr->langopts.ascii_language);
+								sprintf(phonemes, "%cen", phonSWITCH);
 								return 0;
 							}
 						}

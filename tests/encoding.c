@@ -24,7 +24,7 @@
 #include <stdio.h>
 
 #include <espeak-ng/espeak_ng.h>
-#include "encoding.h"
+#include <espeak-ng/encoding.h>
 
 void
 test_unbound_text_decoder()
@@ -908,8 +908,6 @@ main(int argc, char **argv)
 	test_auto_decoder();
 
 	test_peekc();
-
-	printf("done\n");
 
 	return EXIT_SUCCESS;
 }

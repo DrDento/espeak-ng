@@ -63,7 +63,7 @@ phoneme u~
   FMT(vnasal/u_n)
 endphoneme
 
-phoneme M_Bo // M_B_o
+phoneme u
   vwl starttype #u endtype #u
   ipa ɯᵝ
   length 160
@@ -73,7 +73,7 @@ endphoneme
 
 // Mid Vowels
 
-phoneme e_o
+phoneme e
   vwl starttype #e endtype #e
   ipa e̞
   length 160
@@ -81,7 +81,7 @@ phoneme e_o
   FMT(vowel/e_8)
 endphoneme
 
-phoneme o_o
+phoneme o
   vwl starttype #o endtype #o
   ipa o̞
   length 160
@@ -91,7 +91,7 @@ endphoneme
 
 // Open Vowels
 
-phoneme a_"
+phoneme a
   vwl starttype #a endtype #a
   ipa ä
   length 160

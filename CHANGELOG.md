@@ -9,7 +9,6 @@ The espeak-ng project is a fork of the espeak project.
 
 ### 1.49.2 - (In Development)
 
-*  Support describing all IPA phonemes in the phoneme tables.
 *  Provide more validation when reading phoneme tables and voice/language files.
 *  Removed support for phoneme equivalence tables. These were disabled in the
    French and German language files.
@@ -18,6 +17,8 @@ The espeak-ng project is a fork of the espeak project.
 *  Use language and accent names consistently across the language files.
 *  Group the encoding handling into a single place with a clean interface and tests.
 *  Support all ISO 8859 encodings.
+*  Support for multi-word text replacements in language dictionaries.
+*  Support compiling `_emoji` dictionary files if present.
 
 bug fixes:
 
@@ -27,6 +28,7 @@ bug fixes:
 new languages:
 
 *  bpy (Bishnupriya Manipuri) -- Vardhan
+*  fr-CH (French (Switzerland)) -- Claude Beazley
 *  kok (Konkani) -- Vardhan
 *  mi (Māori) -- Graham Oliver
 *  sd (Sindhi, Arabic script) -- Vardhan
@@ -36,11 +38,13 @@ updated languages:
 *  af (Afrikaans) -- Christo de Klerk
 *  du (Dutch) -- Leonard de Ruijter
 *  en (English) -- Reece Dunn
+*  fa (Farsi/Persian) -- Shadyar Khodayari
 *  fr (French) -- Valdis Vitolins; Reece Dunn
 *  gu (Gujarati) -- Vardhan
 *  hi (Hindi) -- Vardhan
 *  it (Italian) -- chrislm
 *  ky (Kyrgyz) -- JRMeyer
+*  lv (Latvian) -- Valdis Vitolins
 *  mr (Marathi) -- Vardhan
 *  or (Oriya) -- Vardhan
 *  ur (Urdu) -- Ejaz Shah

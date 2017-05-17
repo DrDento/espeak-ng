@@ -23,6 +23,7 @@ The supported languages are:
 | `trk`       | `az`              | Turkic                | Azerbaijani                 |                        |
 |             | `eu`              |                       | Basque                      |                        |
 | `inc`       | `bn`              | Indic                 | Bengali                     |                        |
+| `inc`       | `bpy`             | Indic                 | Bishnupriya Manipuri        |                        |
 | `zls`       | `bs`              | South Slavic          | Bosnian                     |                        |
 | `zls`       | `bg`              | South Slavic          | Bulgarian                   |                        |
 | `sit`       | `my`              | Sino-Tibetan          | Burmese                     |                        |
@@ -30,7 +31,7 @@ The supported languages are:
 | `sit`       | `yue`             | Sino-Tibetan          | Chinese                     | Cantonese              |
 | `sit`       | `cmn`             | Sino-Tibetan          | Chinese                     | Mandarin               |
 | `zls`       | `hr`              | South Slavic          | Croatian                    |                        |
-| `zls`       | `cs`              | South Slavic          | Czech                       |                        |
+| `zlw`       | `cs`              | West Slavic           | Czech                       |                        |
 | `gmq`       | `da`              | North Germanic        | Danish                      |                        |
 | `gmw`       | `nl`              | West Germanic         | Dutch                       |                        |
 | `gmw`       | `en-US`           | West Germanic         | English                     | American               |
@@ -47,6 +48,7 @@ The supported languages are:
 | `urj`       | `fi`              | Uralic                | Finnish                     |                        |
 | `roa`       | `fr-BE`           | Romance               | French                      | Belgium                |
 | `roa`       | `fr`              | Romance               | French                      | France                 |
+| `roa`       | `fr-CH`           | Romance               | French                      | Switzerland            |
 | `cel`       | `ga`              | Celtic                | Gaelic                      | Irish                  |
 | `cel`       | `gd`              | Celtic                | Gaelic                      | Scottish               |
 | `ccs`       | `ka`              | South Caucasian       | Georgian                    |                        |
@@ -77,7 +79,6 @@ The supported languages are:
 | `poz`       | `ms`              | Malayo-Polynesian     | Malay                       |                        |
 | `dra`       | `ml`              | Dravidian             | Malayalam                   |                        |
 | `sem`       | `mt`              | Semitic               | Maltese                     |                        |
-| `sit`       | `mni`             | Sino-Tibetan          | Manipuri                    |                        |
 | `inc`       | `mr`              | Indic                 | Marathi                     |                        |
 | `azc`       | `nci`             | Uto-Aztecan           | Nahuatl                     | Classical              |
 | `inc`       | `ne`              | Indic                 | Nepali                      |                        |
@@ -85,18 +86,17 @@ The supported languages are:
 | `inc`       | `or`              | Indic                 | Oriya                       |                        |
 | `cus`       | `om`              | Cushitic              | Oromo                       |                        |
 | `roa`       | `pap`             | Romance               | Papiamento                  |                        |
-| `und`       | `und-fonipa`      |                       | Phonemes<sup>[3]</sup>      | IPA                    |
-| `zls`       | `pl`              | South Slavic          | Polish                      |                        |
+| `zlw`       | `pl`              | West Slavic           | Polish                      |                        |
 | `roa`       | `pt-BR`           | Romance               | Portuguese                  | Brazillian             |
 | `roa`       | `pt`              | Romance               | Portuguese                  | Portugal               |
 | `inc`       | `pa`              | Indic                 | Punjabi                     |                        |
 | `roa`       | `ro`              | Romance               | Romanian                    |                        |
-| `zls`       | `ru`              | South Slavic          | Russian                     |                        |
+| `zle`       | `ru`              | East Slavic           | Russian                     |                        |
 | `zls`       | `sr`              | South Slavic          | Serbian                     |                        |
 | `bnt`       | `tn`              | Bantu                 | Setswana                    |                        |
 | `inc`       | `sd`              | Indic                 | Sindhi                      |                        |
 | `inc`       | `si`              | Indic                 | Sinhala                     |                        |
-| `zls`       | `sk`              | South Slavic          | Slovak                      |                        |
+| `zlw`       | `sk`              | West Slavic           | Slovak                      |                        |
 | `zls`       | `sl`              | South Slavic          | Slovenian                   |                        |
 | `roa`       | `es`              | Romance               | Spanish                     | Spain                  |
 | `roa`       | `es-419`          | Romance               | Spanish                     | Latin American         |
@@ -115,5 +115,3 @@ The supported languages are:
 [1] Farsi/Persian written using English (Latin) characters.
 
 [2] Currently, only Hiragana and Katakana are supported.
-
-[3] Currently only supported using the `[[...]]` phoneme blocks.

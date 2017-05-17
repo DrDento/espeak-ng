@@ -19,140 +19,35 @@
 #include "config.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include <espeak-ng/espeak_ng.h>
+#include <espeak-ng/encoding.h>
+#include <espeak-ng/tokenizer.h>
 
-#include "encoding.h"
-#include "tokenizer.h"
 #include "speech.h"
 #include "phoneme.h"
 #include "synthesize.h"
 #include "translate.h"
 
-void
-test_latin_common()
+// TODO: Find a better place for this than speech.c, so it can be implemented
+// in one place without having to include all of speech.c.
+int GetFileLength(const char *filename)
 {
-	printf("testing Latin/Common (Latn/Zyyy) script classification\n");
+	struct stat statbuf;
 
-	assert(clause_type_from_codepoint('a') == CLAUSE_NONE);
-	assert(clause_type_from_codepoint('.') == CLAUSE_PERIOD);
-	assert(clause_type_from_codepoint('?') == CLAUSE_QUESTION);
-	assert(clause_type_from_codepoint('!') == CLAUSE_EXCLAMATION);
-	assert(clause_type_from_codepoint(',') == CLAUSE_COMMA);
-	assert(clause_type_from_codepoint(':') == CLAUSE_COLON);
-	assert(clause_type_from_codepoint(';') == CLAUSE_SEMICOLON);
+	if (stat(filename, &statbuf) != 0)
+		return -errno;
 
-	assert(clause_type_from_codepoint(0x00A1) == (CLAUSE_SEMICOLON | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0x00Bf) == (CLAUSE_SEMICOLON | CLAUSE_OPTIONAL_SPACE_AFTER));
+	if (S_ISDIR(statbuf.st_mode))
+		return -EISDIR;
 
-	assert(clause_type_from_codepoint(0x2013) == CLAUSE_SEMICOLON);
-	assert(clause_type_from_codepoint(0x2014) == CLAUSE_SEMICOLON);
-	assert(clause_type_from_codepoint(0x2026) == (CLAUSE_SEMICOLON | CLAUSE_SPEAK_PUNCTUATION_NAME | CLAUSE_OPTIONAL_SPACE_AFTER));
-}
-
-void
-test_greek()
-{
-	printf("testing Greek (Grek) script classification\n");
-
-	assert(clause_type_from_codepoint(0x037E) == CLAUSE_QUESTION);
-	assert(clause_type_from_codepoint(0x0387) == CLAUSE_SEMICOLON);
-}
-
-void
-test_armenian()
-{
-	printf("testing Armenian (Armn) script classification\n");
-
-	assert(clause_type_from_codepoint(0x055B) == (CLAUSE_EXCLAMATION | CLAUSE_PUNCTUATION_IN_WORD));
-	assert(clause_type_from_codepoint(0x055C) == (CLAUSE_EXCLAMATION | CLAUSE_PUNCTUATION_IN_WORD));
-	assert(clause_type_from_codepoint(0x055D) == CLAUSE_COMMA);
-	assert(clause_type_from_codepoint(0x055E) == (CLAUSE_QUESTION | CLAUSE_PUNCTUATION_IN_WORD));
-	assert(clause_type_from_codepoint(0x0589) == (CLAUSE_PERIOD | CLAUSE_OPTIONAL_SPACE_AFTER));
-}
-
-void
-test_arabic()
-{
-	printf("testing Arabic (Arab) script classification\n");
-
-	assert(clause_type_from_codepoint(0x060C) == CLAUSE_COMMA);
-	assert(clause_type_from_codepoint(0x061B) == CLAUSE_SEMICOLON);
-	assert(clause_type_from_codepoint(0x061F) == CLAUSE_QUESTION);
-	assert(clause_type_from_codepoint(0x06D4) == CLAUSE_PERIOD);
-}
-
-void
-test_devanagari()
-{
-	printf("testing Devanagari (Deva) script classification\n");
-
-	assert(clause_type_from_codepoint(0x0964) == (CLAUSE_PERIOD | CLAUSE_OPTIONAL_SPACE_AFTER));
-}
-
-void
-test_tibetan()
-{
-	printf("testing Tibetan (Tibt) script classification\n");
-
-	assert(clause_type_from_codepoint(0x0F0D) == (CLAUSE_PERIOD | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0x0F0E) == CLAUSE_PARAGRAPH);
-}
-
-void
-test_sinhala()
-{
-	printf("testing Sinhala (Sinh) script classification\n");
-
-	assert(clause_type_from_codepoint(0x0DF4) == (CLAUSE_PERIOD | CLAUSE_OPTIONAL_SPACE_AFTER));
-}
-
-void
-test_georgian()
-{
-	printf("testing Georgian (Geor) script classification\n");
-
-	assert(clause_type_from_codepoint(0x10FB) == CLAUSE_PARAGRAPH);
-}
-
-void
-test_ethiopic()
-{
-	printf("testing Ethiopic (Ethi) script classification\n");
-
-	assert(clause_type_from_codepoint(0x1362) == CLAUSE_PERIOD);
-	assert(clause_type_from_codepoint(0x1363) == CLAUSE_COMMA);
-	assert(clause_type_from_codepoint(0x1364) == CLAUSE_SEMICOLON);
-	assert(clause_type_from_codepoint(0x1365) == CLAUSE_COLON);
-	assert(clause_type_from_codepoint(0x1366) == CLAUSE_COLON);
-	assert(clause_type_from_codepoint(0x1367) == CLAUSE_QUESTION);
-	assert(clause_type_from_codepoint(0x1368) == CLAUSE_PARAGRAPH);
-}
-
-void
-test_ideographic()
-{
-	printf("testing Ideographic (Hani) script classification\n");
-
-	assert(clause_type_from_codepoint(0x3001) == (CLAUSE_COMMA | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0x3002) == (CLAUSE_PERIOD | CLAUSE_OPTIONAL_SPACE_AFTER));
-}
-
-void
-test_fullwidth()
-{
-	printf("testing Full Width/Common (Zyyy) script classification\n");
-
-	assert(clause_type_from_codepoint(0xFF01) == (CLAUSE_EXCLAMATION | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0xFF0C) == (CLAUSE_COMMA | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0xFF0E) == (CLAUSE_PERIOD | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0xFF1A) == (CLAUSE_COLON | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0xFF1B) == (CLAUSE_SEMICOLON | CLAUSE_OPTIONAL_SPACE_AFTER));
-	assert(clause_type_from_codepoint(0xFF1F) == (CLAUSE_QUESTION | CLAUSE_OPTIONAL_SPACE_AFTER));
+	return statbuf.st_size;
 }
 
 void
@@ -170,7 +65,7 @@ test_unbound_tokenizer()
 	assert(tokenizer_get_token_text(tokenizer) != NULL);
 	assert(*tokenizer_get_token_text(tokenizer) == '\0');
 
-	assert(tokenizer_reset(tokenizer, NULL) == 1);
+	assert(tokenizer_reset(tokenizer, NULL, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
 
 	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
 	assert(tokenizer_get_token_text(tokenizer) != NULL);
@@ -188,7 +83,7 @@ test_linux_newline_tokens()
 	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
 
 	assert(text_decoder_decode_string(decoder, "\n\n", -1, ESPEAKNG_ENCODING_US_ASCII) == ENS_OK);
-	assert(tokenizer_reset(tokenizer, decoder) == 1);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
 
 	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
 	assert(tokenizer_get_token_text(tokenizer) != NULL);
@@ -215,7 +110,7 @@ test_mac_newline_tokens()
 	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
 
 	assert(text_decoder_decode_string(decoder, "\r\r", -1, ESPEAKNG_ENCODING_US_ASCII) == ENS_OK);
-	assert(tokenizer_reset(tokenizer, decoder) == 1);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
 
 	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
 	assert(tokenizer_get_token_text(tokenizer) != NULL);
@@ -242,7 +137,7 @@ test_windows_newline_tokens()
 	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
 
 	assert(text_decoder_decode_string(decoder, "\r\n\r\n", -1, ESPEAKNG_ENCODING_US_ASCII) == ENS_OK);
-	assert(tokenizer_reset(tokenizer, decoder) == 1);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
 
 	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
 	assert(tokenizer_get_token_text(tokenizer) != NULL);
@@ -260,27 +155,550 @@ test_windows_newline_tokens()
 	destroy_tokenizer(tokenizer);
 }
 
-int
-main(int argc, char **argv)
+void
+test_unicode_newline_tokens()
 {
-	test_latin_common();
-	test_greek();
-	test_armenian();
-	test_arabic();
-	test_devanagari();
-	test_tibetan();
-	test_sinhala();
-	test_georgian();
-	test_ethiopic();
-	test_ideographic();
-	test_fullwidth();
+	printf("testing unicode newline tokens\n");
 
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+
+	assert(text_decoder_decode_string(decoder, "\x0C\x0C\xC2\x85\xC2\x85\xE2\x80\xA8\xE2\x80\xA8", -1, ESPEAKNG_ENCODING_UTF_8) == ENS_OK);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
+
+	// FORM FEED (FF) -- Used as a page (not paragraph) break.
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\x0C") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\x0C") == 0);
+
+	// NEXT LINE (NEL) [U+0085] -- Used in EBCDIC systems as a combined CR+LF character.
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xC2\x85") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xC2\x85") == 0);
+
+	// General Category: Zl -- LINE SEPARATOR [U+2028]
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xE2\x80\xA8") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xE2\x80\xA8") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(*tokenizer_get_token_text(tokenizer) == '\0');
+
+	destroy_text_decoder(decoder);
+	destroy_tokenizer(tokenizer);
+}
+
+void
+test_paragraph_tokens()
+{
+	printf("testing paragraph tokens\n");
+
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+
+	assert(text_decoder_decode_string(decoder, "\xE2\x80\xA9\xE2\x80\xA9", -1, ESPEAKNG_ENCODING_UTF_8) == ENS_OK);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
+
+	// General Category: Zp, PARAGRAPH SEPARATOR [U+2029]
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PARAGRAPH);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xE2\x80\xA9") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PARAGRAPH);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xE2\x80\xA9") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(*tokenizer_get_token_text(tokenizer) == '\0');
+
+	destroy_text_decoder(decoder);
+	destroy_tokenizer(tokenizer);
+}
+
+void
+test_whitespace_tokens()
+{
+	printf("testing whitespace tokens\n");
+
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+
+	assert(text_decoder_decode_string(decoder, "\t\t\n\x0B\x0B\n \xE3\x80\x80 \n\xC2\xA0\xC2\xA0", -1, ESPEAKNG_ENCODING_UTF_8) == ENS_OK);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
+
+	// General Category: Cc, Property: White_Space
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\t\t") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\n") == 0);
+
+	// General Category: Cc, Property: White_Space, VERTICAL TAB (VT) -- Not treated as newline tokens.
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\x0B\x0B") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\n") == 0);
+
+	// General Category: Zs, Property: White_Space
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " \xE3\x80\x80 ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_NEWLINE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\n") == 0);
+
+	// General Category: Zs, Property: White_Space, Decomposition: <noBreak>, NO-BREAK SPACE [U+00A0]
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xC2\xA0\xC2\xA0") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(*tokenizer_get_token_text(tokenizer) == '\0');
+
+	destroy_text_decoder(decoder);
+	destroy_tokenizer(tokenizer);
+}
+
+void
+test_Latn_word_tokens()
+{
+	printf("testing Latin (Latn) script word tokens\n");
+
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+
+	assert(text_decoder_decode_string(decoder, "One one ONE OneTwo ONETwo", -1, ESPEAKNG_ENCODING_US_ASCII) == ENS_OK);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WORD_CAPITALIZED);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "One") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WORD_LOWERCASE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "one") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WORD_UPPERCASE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "ONE") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WORD_MIXEDCASE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "OneTwo") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WORD_MIXEDCASE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "ONETwo") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(*tokenizer_get_token_text(tokenizer) == '\0');
+
+	destroy_text_decoder(decoder);
+	destroy_tokenizer(tokenizer);
+}
+
+void
+test_Latn_punctuation_tokens()
+{
+	printf("testing Latin (Latn) script punctuation tokens\n");
+
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+
+	assert(text_decoder_decode_string(decoder, ". ? .. ! ... , .... : ; \xE2\x80\xA6", -1, ESPEAKNG_ENCODING_UTF_8) == ENS_OK);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_FULL_STOP);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ".") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_QUESTION_MARK);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "?") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_FULL_STOP);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ".") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_FULL_STOP);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ".") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_EXCLAMATION_MARK);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "!") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_ELLIPSIS);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "...") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_COMMA);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ",") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_ELLIPSIS);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "...") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_FULL_STOP);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ".") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_COLON);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ":") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_SEMICOLON);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ";") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// HORIZONTAL ELLIPSIS [U+2026]
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_ELLIPSIS);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xE2\x80\xA6") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(*tokenizer_get_token_text(tokenizer) == '\0');
+
+	destroy_text_decoder(decoder);
+	destroy_tokenizer(tokenizer);
+}
+
+void
+test_Latn_general_punctuation_tokens()
+{
+	printf("testing Latin (Latn) script general punctuation tokens\n");
+
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+
+	assert(text_decoder_decode_string(decoder, "\" () - _ \xC2\xAB\xC2\xBB", -1, ESPEAKNG_ENCODING_UTF_8) == ENS_OK);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
+
+	// General Category: Po
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PUNCTUATION);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\"") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// General Category: Ps
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PUNCTUATION);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "(") == 0);
+
+	// General Category: Pe
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PUNCTUATION);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), ")") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// General Category: Pd
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PUNCTUATION);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "-") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// General Category: Pc
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PUNCTUATION);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "_") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// General Category: Pi, LEFT-POINTING DOUBLE ANGLE QUOTATION MARK [U+00AB]
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PUNCTUATION);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xC2\xAB") == 0);
+
+	// General Category: Pf, RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK [U+00BB]
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_PUNCTUATION);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xC2\xBB") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(*tokenizer_get_token_text(tokenizer) == '\0');
+
+	destroy_text_decoder(decoder);
+	destroy_tokenizer(tokenizer);
+}
+
+void
+test_Latn_symbol_tokens()
+{
+	printf("testing Latin (Latn) script symbol tokens\n");
+
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+
+	assert(text_decoder_decode_string(decoder, "$ ^ + \xC2\xA9", -1, ESPEAKNG_ENCODING_UTF_8) == ENS_OK);
+	assert(tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT) == 1);
+
+	// General Category: Sc
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_SYMBOL);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "$") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// General Category: Sk
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_SYMBOL);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "^") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// General Category: Sm
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_SYMBOL);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "+") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_WHITESPACE);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), " ") == 0);
+
+	// General Category: So, COPYRIGHT SIGN [U+00A9]
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_SYMBOL);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(strcmp(tokenizer_get_token_text(tokenizer), "\xC2\xA9") == 0);
+
+	assert(tokenizer_read_next_token(tokenizer) == ESPEAKNG_TOKEN_END_OF_BUFFER);
+	assert(tokenizer_get_token_text(tokenizer) != NULL);
+	assert(*tokenizer_get_token_text(tokenizer) == '\0');
+
+	destroy_text_decoder(decoder);
+	destroy_tokenizer(tokenizer);
+}
+
+void
+run_tests()
+{
 	test_unbound_tokenizer();
+
 	test_linux_newline_tokens();
 	test_mac_newline_tokens();
 	test_windows_newline_tokens();
+	test_unicode_newline_tokens();
+	test_paragraph_tokens();
+	test_whitespace_tokens();
 
-	printf("done\n");
+	test_Latn_word_tokens();
+	test_Latn_punctuation_tokens();
+	test_Latn_general_punctuation_tokens();
+	test_Latn_symbol_tokens();
+}
+
+void
+escape_newline(const char *s)
+{
+	for ( ; *s; ++s) switch (*s)
+	{
+	case '\r': printf("\\r"); break;
+	case '\n': printf("\\n"); break;
+	default:   putc(*s, stdout); break;
+	}
+}
+
+void
+print_tokens(espeak_ng_TEXT_DECODER *decoder)
+{
+	espeak_ng_TOKENIZER *tokenizer = create_tokenizer();
+	if (!tokenizer_reset(tokenizer, decoder, ESPEAKNG_TOKENIZER_OPTION_TEXT)) {
+		destroy_tokenizer(tokenizer);
+		return;
+	}
+
+	while (1) switch (tokenizer_read_next_token(tokenizer))
+	{
+	case ESPEAKNG_TOKEN_END_OF_BUFFER:
+		destroy_tokenizer(tokenizer);
+		return;
+	case ESPEAKNG_TOKEN_UNKNOWN:
+		printf("unknown            : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_NEWLINE:
+		printf("newline            : ");
+		escape_newline(tokenizer_get_token_text(tokenizer));
+		putc('\n', stdout);
+		break;
+	case ESPEAKNG_TOKEN_PARAGRAPH:
+		printf("paragraph          : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_WHITESPACE:
+		printf("whitespace         : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_WORD_UPPERCASE:
+		printf("word (upper case)  : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_WORD_LOWERCASE:
+		printf("word (lower case)  : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_WORD_MIXEDCASE:
+		printf("word (mixed case)  : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_WORD_CAPITALIZED:
+		printf("word (capitalized) : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_FULL_STOP:
+		printf("full stop          : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_QUESTION_MARK:
+		printf("question mark      : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_EXCLAMATION_MARK:
+		printf("exclamation mark   : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_COMMA:
+		printf("comma              : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_COLON:
+		printf("colon              : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	case ESPEAKNG_TOKEN_SEMICOLON:
+		printf("semicolon          : %s\n", tokenizer_get_token_text(tokenizer));
+		break;
+	}
+}
+
+void
+print_tokens_from_file(const char *filename, const char *encoding_name)
+{
+	espeak_ng_ENCODING encoding = espeak_ng_EncodingFromName(encoding_name);
+	if (encoding == ESPEAKNG_ENCODING_UNKNOWN) {
+		printf("Unknown encoding \"%s\".\n", encoding_name);
+		return;
+	}
+
+	int length = GetFileLength(filename);
+	FILE *f = (length > 0) ? fopen(filename, "rb") : NULL;
+	if (!f) {
+		printf("Cannot open file: %s\n", filename);
+		return;
+	}
+
+	char *buffer = malloc(length);
+	if (!buffer) {
+		fclose(f);
+		printf("Out of memory!\n");
+		return;
+	}
+
+	fread(buffer, 1, length, f);
+	fclose(f);
+
+	espeak_ng_TEXT_DECODER *decoder = create_text_decoder();
+	if (text_decoder_decode_string(decoder, buffer, length, encoding) == ENS_OK)
+		print_tokens(decoder);
+
+	destroy_text_decoder(decoder);
+}
+
+void
+usage(const char *program)
+{
+	printf("%s -- Run the tokenizer tests.\n", program);
+	printf("%s ENCODING FILENAME -- Print the tokens for FILENAME.\n", program);
+}
+
+int
+main(int argc, char **argv)
+{
+	switch (argc)
+	{
+	case 1:  run_tests(); break;
+	case 3:  print_tokens_from_file(argv[2], argv[1]); break;
+	default: usage(argv[0]); return EXIT_FAILURE;
+	}
 
 	return EXIT_SUCCESS;
 }

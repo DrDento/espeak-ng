@@ -30,8 +30,8 @@
 
 #include <espeak-ng/espeak_ng.h>
 #include <espeak-ng/speak_lib.h>
+#include <espeak-ng/encoding.h>
 
-#include "encoding.h"
 #include "error.h"
 #include "speech.h"
 #include "phoneme.h"
@@ -362,6 +362,16 @@ char *DecodeRule(const char *group_chars, int group_length, char *rule, int cont
 	return output;
 }
 
+typedef enum
+{
+	LINE_PARSER_WORD = 0,
+	LINE_PARSER_END_OF_WORD = 1,
+	LINE_PARSER_MULTIPLE_WORDS = 2,
+	LINE_PARSER_END_OF_WORDS = 3,
+	LINE_PARSER_PRONUNCIATION = 4,
+	LINE_PARSER_END_OF_PRONUNCIATION = 5,
+} LINE_PARSER_STATES;
+
 static int compile_line(char *linebuf, char *dict_line, int *hash)
 {
 	// Compile a line in the language_list file
@@ -369,8 +379,9 @@ static int compile_line(char *linebuf, char *dict_line, int *hash)
 	char *p;
 	char *word;
 	char *phonetic;
+	char *phonetic_end;
 	unsigned int ix;
-	int step;
+	LINE_PARSER_STATES step;
 	unsigned int n_flag_codes = 0;
 	int flagnum;
 	int flag_offset;
@@ -398,7 +409,7 @@ static int compile_line(char *linebuf, char *dict_line, int *hash)
 
 	p = linebuf;
 
-	step = 0;
+	step = LINE_PARSER_WORD;
 
 	c = 0;
 	while (c != '\n') {
@@ -455,17 +466,17 @@ static int compile_line(char *linebuf, char *dict_line, int *hash)
 
 		switch (step)
 		{
-		case 0:
+		case LINE_PARSER_WORD:
 			if (c == '(') {
 				multiple_words = 1;
 				word = p+1;
-				step = 1;
+				step = LINE_PARSER_END_OF_WORD;
 			} else if (!isspace2(c)) {
 				word = p;
-				step = 1;
+				step = LINE_PARSER_END_OF_WORD;
 			}
 			break;
-		case 1:
+		case LINE_PARSER_END_OF_WORD:
 			if ((c == '-') && multiple_words) {
 				if (IsDigit09(word[0]))
 					multiple_numeric_hyphen = 1;
@@ -477,43 +488,48 @@ static int compile_line(char *linebuf, char *dict_line, int *hash)
 
 				if (multiple_words) {
 					multiple_string = multiple_string_end = p+1;
-					step = 2;
+					step = LINE_PARSER_MULTIPLE_WORDS;
 				} else
-					step = 3;
+					step = LINE_PARSER_END_OF_WORDS;
 			} else if (c == ')') {
 				if (multiple_words) {
 					p[0] = 0;
 					multiple_words = 0;
-					step = 3;
+					step = LINE_PARSER_END_OF_WORDS;
 				} else if (word[0] != '_') {
 					fprintf(f_log, "%5d: Missing '('\n", linenum);
 					error_count++;
-					step = 3;
+					step = LINE_PARSER_END_OF_WORDS;
 				}
 			}
 			break;
-		case 2:
+		case LINE_PARSER_MULTIPLE_WORDS:
 			if (isspace2(c))
 				multiple_words++;
 			else if (c == ')') {
 				p[0] = ' '; // terminate extra string
 				multiple_string_end = p+1;
-				step = 3;
+				step = LINE_PARSER_END_OF_WORDS;
 			}
 			break;
-		case 3:
+		case LINE_PARSER_END_OF_WORDS:
 			if (!isspace2(c)) {
 				phonetic = p;
-				step = 4;
+				step = LINE_PARSER_PRONUNCIATION;
 			}
 			break;
-		case 4:
+		case LINE_PARSER_PRONUNCIATION:
 			if (isspace2(c)) {
+				phonetic_end = p;
 				p[0] = 0; // terminate phonetic
-				step = 5;
+				step = LINE_PARSER_END_OF_PRONUNCIATION;
 			}
 			break;
-		case 5:
+		case LINE_PARSER_END_OF_PRONUNCIATION:
+			if (!isspace2(c)) {
+				*phonetic_end = ' ';
+				step = LINE_PARSER_PRONUNCIATION;
+			}
 			break;
 		}
 		p++;
@@ -1554,6 +1570,7 @@ ESPEAK_NG_API espeak_ng_STATUS espeak_ng_CompileDictionary(const char *dsource, 
 		compile_dictlist_file(path, "listx");
 		compile_dictlist_file(path, "list");
 	}
+	compile_dictlist_file(path, "emoji");
 	compile_dictlist_file(path, "extra");
 
 	compile_dictlist_end(f_out);

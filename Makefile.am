@@ -15,7 +15,11 @@ SHARED_VERSION=2:49:1 # = *.so.1.1.49
 
 MKDIR=mkdir -p
 
-AM_CFLAGS = -Wno-endif-labels # Needed to prevent warnings in ieee80.c.
+# -Wno-endif-labels : Needed to prevent warnings in ieee80.c.
+AM_CFLAGS = \
+	-Isrc/include -Isrc/include/compat -I src/ucd-tools/src/include \
+	-D_BSD_SOURCE -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200112L \
+	-Wno-endif-labels
 
 EXTRA_DIST=
 
@@ -25,6 +29,9 @@ man1_MANS =
 
 noinst_bin_PROGRAMS =
 noinst_bindir =
+
+noinst_lib_LTLIBRARIES =
+noinst_libdir =
 
 ##### ChangeLog:
 
@@ -122,29 +129,28 @@ espeak_include_HEADERS = \
 
 espeak_ng_includedir = $(includedir)/espeak-ng
 espeak_ng_include_HEADERS = \
+	src/include/espeak-ng/encoding.h \
 	src/include/espeak-ng/espeak_ng.h \
-	src/include/espeak-ng/speak_lib.h
+	src/include/espeak-ng/speak_lib.h \
+	src/include/espeak-ng/tokenizer.h
 
 lib_LTLIBRARIES += src/libespeak-ng.la
 
 src_libespeak_ng_la_LDFLAGS = -version-info $(SHARED_VERSION) -lpthread -lm \
 	${PCAUDIOLIB_LIBS}
 
-src_libespeak_ng_la_CFLAGS = -Isrc/include -Isrc/include/compat -I src/ucd-tools/src/include \
-	-fPIC -fvisibility=hidden -D _BSD_SOURCE -D_DEFAULT_SOURCE -D _POSIX_C_SOURCE=200112L \
+src_libespeak_ng_la_CFLAGS = \
+	-fPIC -fvisibility=hidden \
 	-pedantic -fno-exceptions -D PATH_ESPEAK_DATA=\"$(DATADIR)\" -DLIBESPEAK_NG_EXPORT \
 	${PCAUDIOLIB_CFLAGS} ${AM_CFLAGS}
 
-UCD_TOOLS_SOURCES = \
+src_libespeak_ng_la_SOURCES = \
 	src/ucd-tools/src/case.c \
 	src/ucd-tools/src/categories.c \
 	src/ucd-tools/src/ctype.c \
 	src/ucd-tools/src/proplist.c \
 	src/ucd-tools/src/scripts.c \
-	src/ucd-tools/src/tostring.c
-
-src_libespeak_ng_la_SOURCES = \
-	$(UCD_TOOLS_SOURCES) \
+	src/ucd-tools/src/tostring.c \
 	src/libespeak-ng/compiledata.c \
 	src/libespeak-ng/compiledict.c \
 	src/libespeak-ng/compilembrola.c \
@@ -197,7 +203,7 @@ endif
 
 src_speak_ng_LDADD   = src/libespeak-ng.la
 src_speak_ng_LDFLAGS = -static -lm ${PCAUDIOLIB_LIBS}
-src_speak_ng_CFLAGS  = -Isrc/libespeak-ng -Isrc/include -D _POSIX_C_SOURCE=200112L ${AM_CFLAGS}
+src_speak_ng_CFLAGS  = -Isrc/libespeak-ng ${AM_CFLAGS}
 src_speak_ng_SOURCES = src/speak-ng.c
 
 bin_PROGRAMS += src/espeak-ng
@@ -207,34 +213,53 @@ man1_MANS += src/espeak-ng.1
 endif
 
 src_espeak_ng_LDADD   = src/libespeak-ng.la ${PCAUDIOLIB_LIBS}
-src_espeak_ng_CFLAGS  = -Isrc/include ${AM_CFLAGS}
 src_espeak_ng_SOURCES = src/espeak-ng.c
 
 ##### tests:
 
+# Test version of libespeak-ng.so with access to the internal APIs, so they can
+# be accessed in the test code. This version should not be installed, as the
+# internal APIs are not guaranteed to be stable between releases.
+lib_LTLIBRARIES += src/libespeak-ng-test.la
+
+src_libespeak_ng_test_la_LDFLAGS = $(src_libespeak_ng_la_LDFLAGS)
+src_libespeak_ng_test_la_CFLAGS  = \
+	-fPIC -pedantic -fno-exceptions -D PATH_ESPEAK_DATA=\"$(DATADIR)\" -DLIBESPEAK_NG_EXPORT \
+	${PCAUDIOLIB_CFLAGS} ${AM_CFLAGS}
+src_libespeak_ng_test_la_SOURCES = $(src_libespeak_ng_la_SOURCES)
+
 noinst_bin_PROGRAMS += tests/encoding.test
 
-tests_encoding_test_CFLAGS = -Isrc/libespeak-ng -Isrc/include -D _POSIX_C_SOURCE=200112L ${AM_CFLAGS}
-tests_encoding_test_SOURCES = \
-	src/libespeak-ng/encoding.c \
-	src/libespeak-ng/mnemonics.c \
-	tests/encoding.c
+tests_encoding_test_LDADD   = src/libespeak-ng.la
+tests_encoding_test_SOURCES = tests/encoding.c
 
 noinst_bin_PROGRAMS += tests/tokenizer.test
 
-tests_tokenizer_test_CFLAGS = \
-	-Isrc/libespeak-ng -Isrc/include -Isrc/include/compat -I src/ucd-tools/src/include \
-	-D _POSIX_C_SOURCE=200112L ${AM_CFLAGS}
-tests_tokenizer_test_SOURCES = \
-	$(UCD_TOOLS_SOURCES) \
-	src/libespeak-ng/encoding.c \
-	src/libespeak-ng/mnemonics.c \
-	src/libespeak-ng/tokenizer.c \
-	tests/tokenizer.c
+tests_tokenizer_test_CFLAGS  = -Isrc/libespeak-ng ${AM_CFLAGS}
+tests_tokenizer_test_LDADD   = src/libespeak-ng.la
+tests_tokenizer_test_SOURCES = tests/tokenizer.c
 
-check:	tests/encoding.test tests/tokenizer.test
-	tests/encoding.test
-	tests/tokenizer.test
+noinst_bin_PROGRAMS += tests/readclause.test
+
+tests_readclause_test_CFLAGS  = -Isrc/libespeak-ng ${AM_CFLAGS}
+tests_readclause_test_LDADD   = src/libespeak-ng-test.la
+tests_readclause_test_SOURCES = tests/readclause.c
+
+noinst_bin_PROGRAMS += tests/voices.test
+
+tests_voices_test_LDADD   = src/libespeak-ng-test.la
+tests_voices_test_CFLAGS  = -Isrc/libespeak-ng ${AM_CFLAGS}
+tests_voices_test_SOURCES = tests/voices.c
+
+%.check: %.test
+	@echo "  TEST      $<"
+	@ESPEAK_DATA_PATH=$(PWD) $< && echo "  PASSED    $<"
+
+check:	tests/encoding.check \
+	tests/tokenizer.check \
+	tests/readclause.check \
+	tests/voices.check \
+	tests/languages.check
 
 ##### phoneme data:
 
@@ -293,7 +318,6 @@ phsource/phonemes.stamp: \
 	phsource/ph_icelandic \
 	phsource/ph_indonesian \
 	phsource/ph_interlingua \
-	phsource/ph_ipa \
 	phsource/ph_irish \
 	phsource/ph_italian \
 	phsource/ph_japanese \
@@ -563,7 +587,7 @@ espeak-ng-data/el_dict: src/espeak-ng phsource/phonemes.stamp dictsource/el_list
 en: espeak-ng-data/en_dict
 dictsource/en_extra:
 	touch dictsource/en_extra
-espeak-ng-data/en_dict: src/espeak-ng phsource/phonemes.stamp dictsource/en_list dictsource/en_rules dictsource/en_extra
+espeak-ng-data/en_dict: src/espeak-ng phsource/phonemes.stamp dictsource/en_list dictsource/en_rules dictsource/en_extra dictsource/en_emoji
 	cd dictsource && ESPEAK_DATA_PATH=$(PWD) LD_LIBRARY_PATH=../src:${LD_LIBRARY_PATH} ../src/espeak-ng --compile=en && cd ..
 
 eo: espeak-ng-data/eo_dict

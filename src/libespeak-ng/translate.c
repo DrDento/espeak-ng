@@ -29,8 +29,8 @@
 
 #include <espeak-ng/espeak_ng.h>
 #include <espeak-ng/speak_lib.h>
+#include <espeak-ng/encoding.h>
 
-#include "encoding.h"
 #include "speech.h"
 #include "phoneme.h"
 #include "synthesize.h"
@@ -489,7 +489,7 @@ static int CheckDottedAbbrev(char *word1)
 
 extern char *phondata_ptr;
 
-int TranslateWord(Translator *tr, char *word_start, WORD_TAB *wtab, char *word_out)
+static int TranslateWord3(Translator *tr, char *word_start, WORD_TAB *wtab, char *word_out)
 {
 	// word1 is terminated by space (0x20) character
 
@@ -617,17 +617,7 @@ int TranslateWord(Translator *tr, char *word_start, WORD_TAB *wtab, char *word_o
 			if (word_out != NULL)
 				strcpy(word_out, word1);
 
-			first_char = word1[0];
-			stress_bits = dictionary_flags[0] & 0x7f;
-			found = LookupDictList(tr, &word1, phonemes, dictionary_flags2, 0, wtab); // the text replacement
-			if (dictionary_flags2[0] != 0) {
-				dictionary_flags[0] = dictionary_flags2[0];
-				dictionary_flags[1] = dictionary_flags2[1];
-				if (stress_bits != 0) {
-					// keep any stress information from the original word
-					dictionary_flags[0] = (dictionary_flags[0] & ~0x7f) | stress_bits;
-				}
-			}
+			return dictionary_flags[0];
 		} else if ((found == 0) && (dictionary_flags[0] & FLAG_SKIPWORDS) && !(dictionary_flags[0] & FLAG_ABBREV)) {
 			// grouped words, but no translation.  Join the words with hyphens.
 			wordx = word1;
@@ -1135,6 +1125,38 @@ int TranslateWord(Translator *tr, char *word_start, WORD_TAB *wtab, char *word_o
 	return dictionary_flags[0];
 }
 
+int TranslateWord(Translator *tr, char *word_start, WORD_TAB *wtab, char *word_out)
+{
+	char words_phonemes[N_WORD_PHONEMES]; // a word translated into phoneme codes
+	char *phonemes = words_phonemes;
+	int available = N_WORD_PHONEMES;
+	int first_word = 1;
+
+	int flags = TranslateWord3(tr, word_start, wtab, word_out);
+	if (flags & FLAG_TEXTMODE && word_out) {
+		while (*word_out && available > 1) {
+			TranslateWord3(tr, word_out, wtab, NULL);
+
+			int n;
+			if (first_word) {
+				n = snprintf(phonemes, available, "%s", word_phonemes);
+				first_word = 0;
+			} else {
+				n = snprintf(phonemes, available, "%c%s", phonEND_WORD, word_phonemes);
+			}
+
+			available -= n;
+			phonemes += n;
+
+			// skip to the next word in a multi-word replacement
+			while (!isspace(*word_out)) ++word_out;
+			while (isspace(*word_out))  ++word_out;
+		}
+		snprintf(word_phonemes, sizeof(word_phonemes), "%s", words_phonemes);
+	}
+	return flags;
+}
+
 static void SetPlist2(PHONEME_LIST2 *p, unsigned char phcode)
 {
 	p->phcode = phcode;
@@ -1191,23 +1213,8 @@ int SetTranslator2(const char *new_language)
 {
 	// Set translator2 to a second language
 	int new_phoneme_tab;
-	const char *new_phtab_name;
-	int bitmap;
-	int dialect = 0;
 
-	new_phtab_name = new_language;
-	if ((bitmap = translator->langopts.dict_dialect) != 0) {
-		if ((bitmap & (1 << DICTDIALECT_EN_US)) && (strcmp(new_language, "en") == 0)) {
-			new_phtab_name = "en-us";
-			dialect = DICTDIALECT_EN_US;
-		}
-		if ((bitmap & (1 << DICTDIALECT_ES_LA)) && (strcmp(new_language, "es") == 0)) {
-			new_phtab_name = "es-la";
-			dialect = DICTDIALECT_ES_LA;
-		}
-	}
-
-	if ((new_phoneme_tab = SelectPhonemeTableName(new_phtab_name)) >= 0) {
+	if ((new_phoneme_tab = SelectPhonemeTableName(new_language)) >= 0) {
 		if ((translator2 != NULL) && (strcmp(new_language, translator2_language) != 0)) {
 			// we already have an alternative translator, but not for the required language, delete it
 			DeleteTranslator(translator2);
@@ -1222,14 +1229,6 @@ int SetTranslator2(const char *new_language)
 				SelectPhonemeTable(voice->phoneme_tab_ix); // revert to original phoneme table
 				new_phoneme_tab = -1;
 				translator2_language[0] = 0;
-			} else {
-				if (dialect == DICTDIALECT_EN_US) {
-					// en-us
-					translator2->dict_condition = 0x48; // bits 3, 6
-					translator2->langopts.param[LOPT_REDUCE_T] = 1;
-				}
-				if (dialect == DICTDIALECT_ES_LA)
-					translator2->dict_condition = 0x04; // bit 2
 			}
 			translator2->phoneme_tab_ix = new_phoneme_tab;
 		}

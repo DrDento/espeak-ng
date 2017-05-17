@@ -28,8 +28,8 @@
 
 #include <espeak-ng/espeak_ng.h>
 #include <espeak-ng/speak_lib.h>
+#include <espeak-ng/encoding.h>
 
-#include "encoding.h"
 #include "speech.h"
 #include "phoneme.h"
 #include "synthesize.h"
@@ -37,7 +37,7 @@
 
 #define L_grc  0x677263 // grc  Ancient Greek
 #define L_jbo  0x6a626f // jbo  Lojban
-#define L_mni  0x6d6e69 // mni  Manipuri
+#define L_mni  0x627079 // bpy  Manipuri
 #define L_pap  0x706170 // pap  Papiamento]
 #define L_zhy  0x7a6879 // zhy
 
@@ -99,17 +99,6 @@ ALPHABET alphabets[] = {
 	{ "_ko",    0xa700,          0xa700, 0xd7ff, L('k', 'o'), AL_NOT_CODE | AL_WORDS },
 	{ NULL, 0, 0, 0, 0, 0 }
 };
-
-ALPHABET *AlphabetFromName(const char *name)
-{
-	ALPHABET *alphabet;
-
-	for (alphabet = alphabets; alphabet->name != NULL; alphabet++) {
-		if (strcmp(name, &alphabet->name[1]) == 0)
-			return alphabet;
-	}
-	return NULL;
-}
 
 ALPHABET *AlphabetFromChar(int c)
 {
@@ -277,7 +266,6 @@ static Translator *NewTranslator(void)
 	tr->langopts.param2[LOPT_BRACKET_PAUSE] = 2; // pauses when announcing bracket names
 	tr->langopts.max_initial_consonants = 3;
 	tr->langopts.replace_chars = NULL;
-	tr->langopts.ascii_language[0] = 0; // Non-Latin alphabet languages, use this language to speak Latin words, default is English
 	tr->langopts.alt_alphabet_lang = L('e', 'n');
 	tr->langopts.roman_suffix = utf8_null;
 
@@ -708,7 +696,7 @@ Translator *SelectTranslator(const char *name)
 		tr->langopts.unstressed_wd2 = 2;
 		tr->langopts.param[LOPT_SONORANT_MIN] = 120; // limit the shortening of sonorants before short vowels
 
-		tr->langopts.numbers = NUM_SINGLE_STRESS | NUM_DECIMAL_COMMA | NUM_AND_UNITS | NUM_OMIT_1_HUNDRED | NUM_OMIT_1_THOUSAND | NUM_ROMAN | NUM_ROMAN_AFTER;
+		tr->langopts.numbers = NUM_SINGLE_STRESS | NUM_DECIMAL_COMMA | NUM_AND_UNITS | NUM_OMIT_1_HUNDRED | NUM_OMIT_1_THOUSAND | NUM_ROMAN | NUM_ROMAN_AFTER | NUM_DFRACTION_4;
 		tr->langopts.numbers2 = NUM2_MULTIPLE_ORDINAL | NUM2_ORDINAL_NO_AND;
 
 		if (name2 == L('c', 'a')) {
@@ -978,7 +966,7 @@ Translator *SelectTranslator(const char *name)
 		break;
 	case L('i', 't'): // Italian
 	{
-		static const short stress_lengths_it[8] = { 165, 140, 150, 165, 0, 0, 218, 305 };
+		static const short stress_lengths_it[8] = { 160, 140, 150, 165, 0, 0, 218, 305 };
 		static const unsigned char stress_amps_it[8] = { 17, 15, 18, 16, 20, 22, 22, 22 };
 		SetupTranslator(tr, stress_lengths_it, stress_amps_it);
 		tr->langopts.length_mods0 = tr->langopts.length_mods; // don't lengthen vowels in the last syllable
